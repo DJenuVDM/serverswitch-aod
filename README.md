@@ -7,7 +7,7 @@ on the same network via Wake-on-LAN or custom scripts.
 ## Install
 
 ```bash
-git clone https://github.com/yourname/serverswitch-aod
+git clone https://github.com/DJenuVDM/serverswitch-aod
 cd serverswitch-aod
 sudo bash install.sh
 ```
