@@ -121,6 +121,11 @@ def wake_script(script_name):
     """
     Run a custom wake script from the scripts/ directory.
     Script name must be alphanumeric + underscores only (security).
+    Request body can include:
+    {
+        "args": ["arg1", "arg2"],  # positional arguments passed to script
+        "env": {"VAR1": "value1"}   # environment variables passed to script
+    }
     """
     # Sanitize script name — only allow safe characters
     safe = "".join(c for c in script_name if c.isalnum() or c in "_-")
@@ -132,11 +137,31 @@ def wake_script(script_name):
         return jsonify({"error": f"script '{safe}.sh' not found in scripts/"}), 404
 
     try:
+        # Parse request body for optional args and env vars
+        data = request.get_json(silent=True) or {}
+        script_args = data.get("args", [])
+        script_env_vars = data.get("env", {})
+        
+        # Validate args are strings
+        if not isinstance(script_args, list) or not all(isinstance(arg, str) for arg in script_args):
+            return jsonify({"error": "args must be a list of strings"}), 400
+        
+        # Validate env vars are strings
+        if not isinstance(script_env_vars, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in script_env_vars.items()):
+            return jsonify({"error": "env must be a dict of string key-value pairs"}), 400
+        
+        # Prepare environment with custom vars
+        env = os.environ.copy()
+        env.update(script_env_vars)
+        
+        # Build command with args
+        cmd = ["bash", script_path] + script_args
+        
         result = subprocess.run(
-            ["bash", script_path],
-            capture_output=True, text=True, timeout=30
+            cmd,
+            capture_output=True, text=True, timeout=30, env=env
         )
-        log.info(f"Script {safe}.sh ran for {request.remote_addr}, exit={result.returncode}")
+        log.info(f"Script {safe}.sh ran for {request.remote_addr} with {len(script_args)} args, exit={result.returncode}")
         return jsonify({
             "status": "script_ran",
             "script": safe,

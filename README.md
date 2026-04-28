@@ -40,13 +40,63 @@ Example script using a smart plug API:
 curl -X POST http://192.168.1.50/api/plug/on
 ```
 
+Example script that accepts arguments:
+```bash
+#!/bin/bash
+# Script that accepts arguments: device name and delay
+DEVICE=$1
+DELAY=${2:-5}
+echo "Waking up $DEVICE in $DELAY seconds..."
+sleep $DELAY
+wakeonlan aa:bb:cc:dd:ee:ff
+```
+
+### Passing arguments to scripts
+
+The Android app allows you to pass arguments to scripts. You can specify arguments 
+in the device settings under "Script arguments" when editing a device.
+
+**From the Android app:**
+- Set "Script arguments" to space-separated values (e.g., `device1 10`)
+- When the script runs, these arguments are passed as command-line parameters
+
+**From API calls:**
+You can also pass arguments directly via the API:
+
+```bash
+# Pass positional arguments
+curl -X POST http://localhost:5051/wake/script/mydevice \
+  -H "X-Token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"args": ["device1", "10"]}'
+
+# Pass environment variables
+curl -X POST http://localhost:5051/wake/script/mydevice \
+  -H "X-Token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"env": {"VAR1": "value1", "VAR2": "value2"}}'
+
+# Combine both
+curl -X POST http://localhost:5051/wake/script/mydevice \
+  -H "X-Token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "args": ["arg1", "arg2"],
+    "env": {"CUSTOM_VAR": "custom_value"}
+  }'
+```
+
+The API request body supports:
+- `args` (array of strings): Positional arguments passed as `$1`, `$2`, etc. in the script
+- `env` (object): Environment variables made available to the script
+
 ## Endpoints
 
 | Method | Endpoint                   | Auth | Description                    |
 |--------|----------------------------|------|--------------------------------|
 | GET    | `/ping`                    | No   | Check AOD is alive             |
 | POST   | `/wake/wol`                | Yes  | Send WoL magic packet          |
-| POST   | `/wake/script/<name>`      | Yes  | Run a custom wake script       |
+| POST   | `/wake/script/<name>`      | Yes  | Run a custom wake script (supports args/env in body) |
 | GET    | `/scripts`                 | Yes  | List available scripts         |
 
 ## Useful commands
