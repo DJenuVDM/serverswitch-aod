@@ -80,9 +80,28 @@ mkdir -p "$INSTALL_DIR/scripts"
 print_ok "Created $INSTALL_DIR and $INSTALL_DIR/scripts"
 
 print_step "Installing system dependencies"
-apt-get update -qq
-apt-get install -y -qq python3 python3-venv python3-pip
-print_ok "Python installed"
+if command -v python3 &> /dev/null; then
+    print_ok "Python 3 is already installed"
+else
+    print_step "Updating package list"
+    if ! apt-get update -qq; then
+        print_error "Failed to update package list. Check your internet connection and repositories."
+        exit 1
+    fi
+    
+    print_step "Installing Python 3"
+    if ! apt-get install -y -qq python3 python3-venv python3-pip; then
+        print_error "Failed to install Python 3 packages."
+        echo ""
+        echo -e "${YELLOW}Troubleshooting:${NC}"
+        echo -e "  • Check your Linux distribution: cat /etc/os-release"
+        echo -e "  • If not Ubuntu/Debian, this script needs modification"
+        echo -e "  • Try: sudo apt-get update && sudo apt-get install python3 python3-venv python3-pip"
+        echo -e "  • Or install Python manually for your distro"
+        exit 1
+    fi
+    print_ok "Python 3 installed"
+fi
 
 print_step "Creating virtual environment"
 python3 -m venv "$INSTALL_DIR/venv"
